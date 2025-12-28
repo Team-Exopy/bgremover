@@ -8,6 +8,8 @@ import torchvision.transforms as transforms
 import cv2
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 
 # Try loading rembg
 try:
@@ -35,6 +37,7 @@ state = torch.load(MODEL_PATH, map_location=device)
 u2net_model.load_state_dict(state)
 u2net_model.eval()
 print("U2NET model loaded successfully.")
+templates = Jinja2Templates(directory="templates")
 
 
 # --- Helpers ---
@@ -109,27 +112,8 @@ def _make_qr_transparent(image_bytes: bytes, tolerance: int = 30) -> BytesIO:
     return output_bytes
 
 @app.get("/", response_class=HTMLResponse)
-async def upload_form():
-    return """
-    <html>
-        <head><title>Image Background Processor</title></head>
-        <body style="font-family: Arial; max-width: 500px; margin: auto;">
-            <h2>Remove Background</h2>
-            <form action="/remove-bg" method="post" enctype="multipart/form-data">
-                <label>Select Image:</label><br>
-                <input type="file" name="file" accept="image/*" required><br><br>
-
-                <label>Is QR Code?</label><br>
-                <select name="is_qr">
-                    <option value="false">No (Photo)</option>
-                    <option value="true">Yes (QR Code)</option>
-                </select><br><br>
-
-                <button type="submit">Process Image</button>
-            </form>
-        </body>
-    </html>
-    """
+async def upload_form(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.post("/remove-bg")
